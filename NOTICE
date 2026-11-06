@@ -1,0 +1,14 @@
+This project is based on running_page by yihong0618, MIT License:
+
+https://github.com/yihong0618/running_page
+
+The dashboard UI follows that project's dashboard theme, which shares its design
+with workouts by zhaohongxuan, also MIT and derived from running_page:
+
+https://github.com/zhaohongxuan/workouts
+
+The original MIT license is in the LICENSE file and must be kept with the code.
+
+Activity data, GPX/TCX/FIT files, the activities database, and generated
+stat SVGs from those repositories are not included. src/static/activities.json
+starts empty and is filled by this repo's own Garmin Connect sync.

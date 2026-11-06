@@ -1,0 +1,104 @@
+name: Sync Garmin
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily at 00:00 UTC (08:00 Asia/Shanghai).
+    - cron: '0 0 * * *'
+
+# contents: write lets this workflow commit synced GPX / activities.json.
+# pages + id-token are required because this workflow calls the Pages deploy.
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: garmin-sync
+  cancel-in-progress: false
+
+env:
+  # garmin = Garmin Connect International (garmin.com). Do not set garmin_cn.
+  RUN_TYPE: garmin
+  ATHLETE: Xunfeng
+  TITLE: Xunfeng 的运动
+  MIN_GRID_DISTANCE: 10
+
+jobs:
+  sync:
+    name: Sync Garmin Connect
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.commit.outputs.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run sync Garmin script
+        if: env.RUN_TYPE == 'garmin'
+        env:
+          GARMIN_SECRET_STRING: ${{ secrets.GARMIN_SECRET_STRING }}
+        run: |
+          if [ -z "$GARMIN_SECRET_STRING" ]; then
+            echo "Missing repository secret GARMIN_SECRET_STRING."
+            echo "Generate it with: python run_page/get_garmin_secret.py <email>"
+            exit 1
+          fi
+          python run_page/garmin_sync.py "$GARMIN_SECRET_STRING"
+
+      - name: Make summary SVGs
+        if: env.RUN_TYPE == 'garmin'
+        continue-on-error: true
+        env:
+          TITLE: ${{ env.TITLE }}
+          ATHLETE: ${{ env.ATHLETE }}
+          MIN_GRID_DISTANCE: ${{ env.MIN_GRID_DISTANCE }}
+        run: |
+          if [ ! -f run_page/data.db ]; then
+            echo "No run_page/data.db yet; skip SVG."
+            exit 0
+          fi
+          python run_page/gen_svg.py --from-db --title "$TITLE" --type github --github-style align-firstday --athlete "$ATHLETE" --special-distance 10 --special-distance2 20 --special-color yellow --special-color2 red --output assets/github.svg --use-localtime --min-distance 0.5 --language zh_CN
+          python run_page/gen_svg.py --from-db --title "超过 ${MIN_GRID_DISTANCE} 公里" --type grid --athlete "$ATHLETE" --output assets/grid.svg --special-color yellow --special-color2 red --special-distance 20 --special-distance2 40 --use-localtime --min-distance "$MIN_GRID_DISTANCE" --language zh_CN
+
+      - name: Commit synced data
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "nothing to commit"
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "chore: sync Garmin activities"
+            git push origin HEAD:main
+            echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          fi
+
+  publish_github_pages:
+    name: Build and publish GitHub Pages
+    needs: sync
+    if: needs.sync.result == 'success'
+    uses: ./.github/workflows/gh-pages.yml
+    with:
+      ref: ${{ needs.sync.outputs.sha }}
+    secrets: inherit
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
