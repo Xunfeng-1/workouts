@@ -288,7 +288,7 @@ export function RouteMapCanvas({
             title={selectedActivity?.name}
           >
             {selectedActivity
-              ? `${selectedActivity.name} · ${(selectedActivity.distance / 1000).toFixed(1)} km`
+              ? `${selectedActivity.name} · ${(selectedActivity.distance / 1000).toFixed(1)} ${zh ? '公里' : 'km'}`
               : `${routes.length.toLocaleString()} ${zh ? '条轨迹' : 'routes'}`}
           </p>
         </div>

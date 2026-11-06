@@ -106,7 +106,7 @@ export function CalendarWidget({
       <div className="mb-3 flex items-center gap-2 text-xs text-[var(--color-muted)]">
         <span className="mr-auto">
           {monthActivities.length} {zh ? '次活动' : 'activities'} ·{' '}
-          {formatDistance(distance)} km
+          {formatDistance(distance)} {zh ? '公里' : 'km'}
         </span>
         <button
           className="rounded px-2 hover:bg-[var(--color-bg)]"
@@ -178,7 +178,7 @@ export function CalendarWidget({
                 {activity.start_date_local.slice(11, 16)} · {activity.name}
               </span>
               <span className="shrink-0 font-mono">
-                {(activity.distance / 1000).toFixed(1)} km
+                {(activity.distance / 1000).toFixed(1)} {zh ? '公里' : 'km'}
               </span>
             </button>
           ))}

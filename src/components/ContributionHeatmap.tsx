@@ -532,7 +532,8 @@ export const ContributionHeatmap = memo(function ContributionHeatmap({
                 </span>
                 <span className="text-xs text-[var(--color-muted)]">
                   {stats.count} {locale === 'zh' ? '次' : 'sessions'}
-                  {!isGym && ` · ${formatDistance(stats.distance)} km`}
+                  {!isGym &&
+                    ` · ${formatDistance(stats.distance)} ${locale === 'zh' ? '公里' : 'km'}`}
                 </span>
               </div>
             )}
@@ -602,7 +603,7 @@ export const ContributionHeatmap = memo(function ContributionHeatmap({
                           ? `${day.date}: ${day.distance} session(s)`
                           : day.domType === 'Training'
                             ? `${day.date}: ${Math.round(day.timeSecs / 60)}min`
-                            : `${day.date}: ${(day.activities.reduce((s, a) => s + a.distance, 0) / 1000).toFixed(1)} km`;
+                            : `${day.date}: ${(day.activities.reduce((s, a) => s + a.distance, 0) / 1000).toFixed(1)} ${locale === 'zh' ? '公里' : 'km'}`;
                     return (
                       <button
                         type="button"
@@ -660,7 +661,8 @@ export const ContributionHeatmap = memo(function ContributionHeatmap({
               onClick={() => onSelectActivity?.(activity)}
             >
               {activity.start_date_local.slice(11, 16)} · {activity.name} ·{' '}
-              {(activity.distance / 1000).toFixed(1)} km
+              {(activity.distance / 1000).toFixed(1)}{' '}
+              {locale === 'zh' ? '公里' : 'km'}
             </button>
           ))}
           <button
@@ -756,7 +758,8 @@ export const ContributionHeatmap = memo(function ContributionHeatmap({
                     d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                {(allStats.time / 3600).toFixed(0)}h
+                {(allStats.time / 3600).toFixed(0)}
+                {locale === 'zh' ? ' 小时' : 'h'}
               </span>
               {!isGym && (
                 <span className="flex items-center gap-1 font-mono">
@@ -773,7 +776,8 @@ export const ContributionHeatmap = memo(function ContributionHeatmap({
                       d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
                     />
                   </svg>
-                  {formatDistance(allStats.distance)} km
+                  {formatDistance(allStats.distance)}{' '}
+                  {locale === 'zh' ? '公里' : 'km'}
                 </span>
               )}
             </div>
@@ -810,7 +814,8 @@ export const ContributionHeatmap = memo(function ContributionHeatmap({
                     d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                {(yearData[0].stats.time / 3600).toFixed(0)}h
+                {(yearData[0].stats.time / 3600).toFixed(0)}
+                {locale === 'zh' ? ' 小时' : 'h'}
               </span>
               {!isGym && (
                 <span className="flex items-center gap-1 font-mono">
@@ -827,7 +832,8 @@ export const ContributionHeatmap = memo(function ContributionHeatmap({
                       d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
                     />
                   </svg>
-                  {formatDistance(yearData[0].stats.distance)} km
+                  {formatDistance(yearData[0].stats.distance)}{' '}
+                  {locale === 'zh' ? '公里' : 'km'}
                 </span>
               )}
               {filter === 'Run' && yearData[0].stats.pace > 0 && (
