@@ -31,7 +31,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_call' && inputs.ref || github.sha }}
+          # Sync Garmin calls this workflow, but github.event_name stays
+          # workflow_dispatch or schedule, so do not test it for workflow_call.
+          # inputs.ref is the commit that sync just pushed. Otherwise github.sha.
+          ref: ${{ inputs.ref || github.sha }}
           persist-credentials: false
 
       - name: Setup pnpm
