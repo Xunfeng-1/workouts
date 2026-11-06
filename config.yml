@@ -1,0 +1,45 @@
+# Xunfeng 的运动
+# 修改此文件即可调整目标与外观。Mapbox token 不要写在这里。
+
+# ── 地图 ──────────────────────────────────────────────────────────────────────
+# 构建时从环境变量 VITE_MAPBOX_TOKEN 读取。
+# GitHub Actions 会把仓库 Secret「MAPBOX_TOKEN」注入为该变量。
+# 留空，避免把 token 提交进仓库。未配置时地图使用免费底图。
+mapbox_token: ''
+
+# ── 外观 ─────────────────────────────────────────────────────────────────────
+
+# 头像 URL。留空则显示默认图标。
+avatar: ''
+
+# 默认语言：zh（中文）| en（英文）
+locale: zh
+
+# 默认主题：system（跟随系统）| light（浅色）| dark（深色）
+theme: dark
+
+# ── 主题预设 ──────────────────────────────────────────────────────────────────
+# dashboard：运动看板（默认）| classic：旧版多页面
+theme_preset: dashboard
+
+# ── 运动目标 ──────────────────────────────────────────────────────────────────
+# unit: distance → 单位 km
+
+goals:
+  all:
+    yearly: 1200
+    monthly: 100
+    weekly: 25
+    unit: distance
+
+  Run:
+    yearly: 800
+    monthly: 70
+    weekly: 20
+    unit: distance
+
+  Ride:
+    yearly: 500
+    monthly: 40
+    weekly: 15
+    unit: distance
