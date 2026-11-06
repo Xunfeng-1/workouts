@@ -98,6 +98,42 @@ export function extractProvince(loc: string | null): string | null {
   return null;
 }
 
+/** Country name from a Nominatim address or a `{country: ...}` payload. */
+export function extractCountry(loc: string | null): string | null {
+  if (!loc || loc === 'None') return null;
+  const text = loc.trim();
+  if (!text || text === 'China') return null;
+  if (text.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(
+        text.replace(/'/g, '"').replace(/None/g, 'null')
+      ) as { country?: string };
+      if (parsed.country) return normalizeCountry(parsed.country);
+    } catch {
+      /* fall through to the address string */
+    }
+  }
+  const parts = text
+    .split(/[,，]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+  for (let index = parts.length - 1; index >= 0; index -= 1) {
+    const part = parts[index];
+    if (/^\d+(?:-\d+)?$/.test(part)) continue;
+    return normalizeCountry(part);
+  }
+  if (extractProvince(text)) return '中国';
+  return null;
+}
+
+function normalizeCountry(name: string): string {
+  if (name === 'China' || name === '中国') return '中国';
+  if (name === 'Japan' || name === '日本') return '日本';
+  if (name === 'Thailand' || name === '泰国') return '泰国';
+  if (name === 'Serbia' || name === '塞尔维亚') return '塞尔维亚';
+  return name;
+}
+
 export function useFilteredActivities(
   activities: Activity[],
   filter: SportFilter,
