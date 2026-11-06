@@ -12,6 +12,7 @@ import type { Activity } from '@/types';
 import {
   useFilteredActivities,
   getAvailableYears,
+  extractCountry,
   extractProvince,
   getActivityData,
 } from '@/hooks/useActivities';
@@ -61,6 +62,7 @@ function Dashboard() {
     null
   );
   const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [page, setPage] = useState<Page>(pageFromPath);
 
   useEffect(() => {
@@ -80,6 +82,12 @@ function Dashboard() {
 
   const selectProvince = useCallback((province: string | null) => {
     setSelectedProvince(province);
+    if (province) setSelectedCountry(null);
+    setSelectedActivity(null);
+  }, []);
+  const selectCountry = useCallback((country: string | null) => {
+    setSelectedCountry(country);
+    if (country) setSelectedProvince(null);
     setSelectedActivity(null);
   }, []);
 
@@ -88,19 +96,28 @@ function Dashboard() {
   const filtered = useFilteredActivities(activities, filter, year);
   const heatmapYear = year ?? years[0] ?? currentYear;
 
-  // Activities filtered to the selected province (for RouteMap)
-  const provinceFiltered = useMemo(() => {
-    if (!selectedProvince) return filtered;
-    return filtered.filter(
-      (a) => extractProvince(a.location_country) === selectedProvince
-    );
-  }, [filtered, selectedProvince]);
+  // Province or country filter for the route map. A selected run wins later.
+  const placeFiltered = useMemo(() => {
+    if (selectedProvince) {
+      return filtered.filter(
+        (activity) =>
+          extractProvince(activity.location_country) === selectedProvince
+      );
+    }
+    if (selectedCountry) {
+      return filtered.filter(
+        (activity) => extractCountry(activity.location_country) === selectedCountry
+      );
+    }
+    return filtered;
+  }, [filtered, selectedProvince, selectedCountry]);
 
   const selectActivity = useCallback(
     (activity: Activity | null) => {
       setSelectedActivity(activity);
       if (activity) {
         setSelectedProvince(null);
+        setSelectedCountry(null);
         if (window.matchMedia('(max-width: 1023px)').matches) {
           requestAnimationFrame(() =>
             routeSectionRef.current?.scrollIntoView({
@@ -199,6 +216,7 @@ function Dashboard() {
                     setYear(value);
                     setSelectedActivity(null);
                     setSelectedProvince(null);
+                    setSelectedCountry(null);
                   }}
                   selectedActivity={selectedActivity}
                   onSelectActivity={selectActivity}
@@ -214,10 +232,13 @@ function Dashboard() {
                   filter={filter}
                   selectedProvince={selectedProvince}
                   onSelectProvince={selectProvince}
+                  selectedCountry={selectedCountry}
+                  onSelectCountry={selectCountry}
+                  onSelectActivity={selectActivity}
                 />
                 <div ref={routeSectionRef} className="scroll-mt-28">
                   <RouteMap
-                    activities={provinceFiltered}
+                    activities={placeFiltered}
                     allActivities={activities}
                     selectedActivity={selectedActivity}
                     dark={dark}

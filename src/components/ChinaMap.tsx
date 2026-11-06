@@ -1,13 +1,16 @@
 import { memo, useEffect, useMemo, useState } from 'react';
 import type { Activity, SportFilter } from '../types';
 import { useLocale } from '../hooks/useLocale';
-import { extractProvince } from '../hooks/useActivities';
+import { extractCountry, extractProvince } from '../hooks/useActivities';
 
 interface ChinaMapProps {
   activities: Activity[];
   filter: SportFilter;
   onSelectProvince?: (province: string | null) => void;
   selectedProvince?: string | null;
+  onSelectCountry?: (country: string | null) => void;
+  selectedCountry?: string | null;
+  onSelectActivity?: (activity: Activity) => void;
 }
 
 type GeoFeature = {
@@ -62,6 +65,9 @@ export const ChinaMap = memo(function ChinaMap({
   filter,
   onSelectProvince,
   selectedProvince,
+  onSelectCountry,
+  selectedCountry,
+  onSelectActivity,
 }: ChinaMapProps) {
   const { locale } = useLocale();
   const [hoveredProvince, setHoveredProvince] = useState<string | null>(null);
@@ -96,6 +102,27 @@ export const ChinaMap = memo(function ChinaMap({
     return map;
   }, [activities]);
 
+  const countryCount = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const activity of activities) {
+      const country = extractCountry(activity.location_country);
+      if (!country) continue;
+      map.set(country, (map.get(country) ?? 0) + 1);
+    }
+    return [...map.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'zh'));
+  }, [activities]);
+
+  const countryActivities = useMemo(() => {
+    if (!selectedCountry) return [];
+    return activities
+      .filter((activity) => extractCountry(activity.location_country) === selectedCountry)
+      .sort(
+        (a, b) =>
+          new Date(b.start_date_local).getTime() -
+          new Date(a.start_date_local).getTime()
+      );
+  }, [activities, selectedCountry]);
+
   const visitedCount = provinceCount.size;
   const displayProvince = hoveredProvince ?? selectedProvince;
   const displayCount = displayProvince
@@ -118,7 +145,7 @@ export const ChinaMap = memo(function ChinaMap({
       {/* Header */}
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-base font-semibold">
-          {locale === 'zh' ? '足迹地图' : 'Footprint Map'}
+          {locale === 'zh' ? '足迹' : 'Footprint'}
         </h2>
         <div className="flex items-center gap-2 text-xs text-[var(--color-muted)]">
           {selectedProvince ? (
@@ -154,6 +181,55 @@ export const ChinaMap = memo(function ChinaMap({
           )}
         </div>
       </div>
+
+      {countryCount.length > 0 && (
+        <div className="mb-3">
+          <p className="mb-1.5 text-xs text-[var(--color-muted)]">
+            {locale === 'zh' ? '国家与地区' : 'Countries'}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {countryCount.map(([country, count]) => {
+              const selected = selectedCountry === country;
+              return (
+                <button
+                  key={country}
+                  type="button"
+                  aria-pressed={selected}
+                  onClick={() =>
+                    onSelectCountry?.(selected ? null : country)
+                  }
+                  className={`rounded-full px-2.5 py-1 text-xs ${
+                    selected
+                      ? 'bg-[var(--color-accent)] text-[var(--color-on-accent)]'
+                      : 'bg-[var(--color-border)] text-[var(--color-text)] hover:bg-[var(--color-accent)]/20'
+                  }`}
+                >
+                  {country} {count}
+                </button>
+              );
+            })}
+          </div>
+          {selectedCountry && (
+            <ul className="mt-2 max-h-36 space-y-1 overflow-y-auto">
+              {countryActivities.map((activity) => (
+                <li key={activity.run_id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelectActivity?.(activity)}
+                    className="w-full truncate rounded px-1 py-0.5 text-left text-xs text-[var(--color-muted)] hover:bg-[var(--color-border)] hover:text-[var(--color-text)]"
+                  >
+                    {activity.start_date_local.slice(0, 10)} · {activity.name}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      <p className="mb-1.5 text-xs text-[var(--color-muted)]">
+        {locale === 'zh' ? '中国省份' : 'China provinces'}
+      </p>
 
       {/* SVG Map — aspect-ratio wrapper prevents stretching */}
       <div className="relative" style={{ aspectRatio: `${SVG_W} / ${SVG_H}` }}>

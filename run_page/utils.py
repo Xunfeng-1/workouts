@@ -56,6 +56,14 @@ def make_activities_file(
     generator.sync_from_data_dir(
         data_dir, file_suffix=file_suffix, activity_title_dict=activity_title_dict
     )
+    # Missing countries (runs abroad often have an empty Garmin location)
+    # are filled from the polyline start. Errors stay inside the helper.
+    try:
+        from geocode import backfill_missing_locations
+
+        backfill_missing_locations(generator.session)
+    except Exception as exc:  # noqa: BLE001
+        print(f"location backfill skipped: {exc}")
     activities_list = generator.load()
     with open(json_file, "w") as f:
         json.dump(activities_list, f)

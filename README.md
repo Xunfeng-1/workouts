@@ -83,6 +83,8 @@ python run_page/garmin_sync.py "$GARMIN_SECRET_STRING"
 
 这会请求 **garmin.com / connectapi.garmin.com**，不会加 `--is-cn`。默认同步跑步、骑行等全部活动。若只想要跑步，可在 `.github/workflows/run_data_sync.yml` 的那条命令末尾加上 `--only-run`。
 
+同步结束后，如果某条活动没有 `location_country` 但有轨迹，会用轨迹起点向 Nominatim 反查国家（最多每秒 1 次，结果缓存在 `run_page/geocode_cache.json`）。查不到或服务失败时跳过，不会让当天的同步失败。
+
 如果 GitHub Actions 里同步仍然出现 **HTTP 429**（Cloudflare 按 Actions 的 IP 拦截），把 `.github/workflows/run_data_sync.yml` 里的 `USE_CLOUDFLARE_WARP` 从 `false` 改成 `true` 再提交。默认是关的。打开后，同步前会安装并连接 Cloudflare WARP，结束时断开。本机生成 secret 不需要开这个开关。
 
 #### `MAPBOX_TOKEN`（构建时注入为 `VITE_MAPBOX_TOKEN`）
