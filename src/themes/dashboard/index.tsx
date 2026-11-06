@@ -187,9 +187,7 @@ function Dashboard() {
           <main className="mx-auto max-w-[1400px] px-4 py-5 sm:px-6 sm:py-6">
             {activities.length === 0 && (
               <p className="mb-6 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] px-4 py-3 text-sm text-[var(--color-muted)]">
-                {locale === 'zh'
-                  ? '还没有运动记录。配置 Garmin 国际区同步后，数据会每天自动更新。'
-                  : 'No workouts yet. After Garmin Connect (garmin.com) sync is configured, data updates daily.'}
+                {locale === 'zh' ? '还没有运动记录' : 'No workouts yet'}
               </p>
             )}
             <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_380px]">

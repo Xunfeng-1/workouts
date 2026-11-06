@@ -2,7 +2,8 @@ import { memo } from 'react';
 import type { Activity, SportFilter } from '../types';
 import { useLocale } from '../hooks/useLocale';
 import {
-  formatDistance,
+  formatDistanceWithUnit,
+  formatHours,
   parseMovingTime,
   extractCountry,
   extractProvince,
@@ -46,7 +47,7 @@ export const ProfileCard = memo(function ProfileCard({
     if (province) provinces.add(province);
   }
 
-  const formatHours = (secs: number) => `${(secs / 3600).toFixed(1)}h`;
+  const hours = (secs: number) => formatHours(secs, locale);
 
   const latest =
     activities.length > 0
@@ -99,11 +100,8 @@ export const ProfileCard = memo(function ProfileCard({
           )}
         </div>
         <div className="flex-1 text-center">
-          <p className="font-mono text-3xl font-bold">
-            {formatDistance(totalDistance)}
-            <span className="ml-1 text-base font-normal text-[var(--color-muted)]">
-              km
-            </span>
+          <p className="font-mono text-3xl font-bold" translate="no">
+            {formatDistanceWithUnit(totalDistance, locale)}
           </p>
           <p className="mt-0.5 flex items-center justify-center gap-1 text-sm text-[var(--color-muted)]">
             <svg
@@ -200,7 +198,9 @@ export const ProfileCard = memo(function ProfileCard({
             </svg>
             {locale === 'zh' ? '时间' : 'Time'}
           </p>
-          <p className="text-lg font-bold">{formatHours(totalSeconds)}</p>
+          <p className="text-lg font-bold" translate="no">
+            {hours(totalSeconds)}
+          </p>
         </div>
       </div>
 
@@ -215,7 +215,7 @@ export const ProfileCard = memo(function ProfileCard({
             {latest.name || (latest.type === 'Run' ? 'Run' : 'Ride')}
             <span className="font-normal text-[var(--color-muted)]">
               {' '}
-              · {formatDistance(latest.distance)} km ·{' '}
+              · {formatDistanceWithUnit(latest.distance, locale)} ·{' '}
               {formatDate(latest.start_date_local)}
             </span>
           </p>

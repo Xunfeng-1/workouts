@@ -135,9 +135,9 @@ export function ActivityLog({
         {(
           [
             ['all', t('all')],
-            ['10', '10km+'],
-            ['20', '20km+'],
-            ['40', '40km+'],
+            ['10', locale === 'zh' ? '10公里+' : '10km+'],
+            ['20', locale === 'zh' ? '20公里+' : '20km+'],
+            ['40', locale === 'zh' ? '40公里+' : '40km+'],
           ] as [DistanceFilter, string][]
         ).map(([val, label]) => (
           <button
@@ -223,11 +223,11 @@ export function ActivityLog({
                 <td className="py-3 font-mono font-medium">
                   {(a.distance / 1000).toFixed(1)}
                   <span className="ml-1 text-xs font-normal text-[var(--color-muted)]">
-                    km
+                    {locale === 'zh' ? '公里' : 'km'}
                   </span>
                 </td>
                 <td className="py-3 text-[var(--color-muted)]">
-                  {formatDuration(a.moving_time)}
+                  {formatDuration(a.moving_time, locale)}
                 </td>
                 <td className="py-3 text-[var(--color-muted)]">
                   {formatPace(a.average_speed)}

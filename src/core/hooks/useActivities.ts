@@ -219,6 +219,30 @@ export function formatDistance(meters: number): string {
   return Math.round(meters / 1000).toString();
 }
 
+export function distanceUnit(locale: string): string {
+  return locale === 'zh' ? '公里' : 'km';
+}
+
+export function formatDistanceWithUnit(meters: number, locale: string): string {
+  return `${formatDistance(meters)} ${distanceUnit(locale)}`;
+}
+
+export function formatHours(seconds: number, locale: string): string {
+  const hours = (seconds / 3600).toFixed(1);
+  return locale === 'zh' ? `${hours} 小时` : `${hours}h`;
+}
+
+/** One goal string, so Chinese does not show both `km` and `公里`. */
+export function formatGoalValue(
+  current: number,
+  target: number,
+  locale: string
+): string {
+  return locale === 'zh'
+    ? `${formatDistance(current)}/${target} 公里`
+    : `${formatDistance(current)} / ${target} km`;
+}
+
 export function formatPace(speedMs: number): string {
   if (!speedMs) return '--';
   const totalSeconds = Math.round(1000 / speedMs);
@@ -227,10 +251,14 @@ export function formatPace(speedMs: number): string {
   return `${min}:${sec.toString().padStart(2, '0')}`;
 }
 
-export function formatDuration(timeStr: string): string {
+export function formatDuration(timeStr: string, locale = 'en'): string {
   const secs = parseMovingTime(timeStr);
   const h = Math.floor(secs / 3600);
   const m = Math.floor((secs % 3600) / 60);
+  if (locale === 'zh') {
+    if (h > 0) return `${h} 小时 ${m} 分钟`;
+    return `${m} 分钟`;
+  }
   if (h > 0) return `${h}h ${m}m`;
   return `${m}m`;
 }

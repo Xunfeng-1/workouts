@@ -1,6 +1,11 @@
 import { memo, useState } from 'react';
 import type { Activity, SportFilter } from '../types';
-import { formatDistance, parseMovingTime } from '../hooks/useActivities';
+import {
+  formatDistanceWithUnit,
+  formatGoalValue,
+  formatHours,
+  parseMovingTime,
+} from '../hooks/useActivities';
 import { useLocale } from '../hooks/useLocale';
 import { GOALS, DEFAULT_GOAL } from '../config';
 
@@ -285,11 +290,7 @@ export const StatsCards = memo(function StatsCards({
     }
   }
 
-  const formatHours = (secs: number) => {
-    const h = (secs / 3600).toFixed(1);
-    return `${h}h`;
-  };
-
+  const hours = (secs: number) => formatHours(secs, locale);
   const unit = filter === 'Run' ? t('runs') : t('activities');
 
   const todayIdx = (now.getDay() + 6) % 7; // Mon=0 … Sun=6
@@ -342,16 +343,13 @@ export const StatsCards = memo(function StatsCards({
           </svg>
           {t('yearlyGoal')}
         </p>
-        <p className="font-mono text-3xl font-bold whitespace-nowrap">
+        <p
+          className="font-mono text-3xl font-bold whitespace-nowrap"
+          translate="no"
+        >
           {goal.unit === 'time'
-            ? formatHours(yearSeconds)
-            : formatDistance(yearDistance)}
-          <span className="ml-1 text-base font-normal text-[var(--color-muted)]">
-            /{' '}
-            {goal.unit === 'time'
-              ? `${Math.round(yearGoalMins / 60)}h`
-              : `${goal.yearly} km`}
-          </span>
+            ? hours(yearSeconds)
+            : formatGoalValue(yearDistance, goal.yearly, locale)}
         </p>
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--color-border)]">
           <div
@@ -378,15 +376,16 @@ export const StatsCards = memo(function StatsCards({
             </svg>
             {yearCount} {unit}
           </span>
-          <span>{formatHours(yearSeconds)}</span>
+          <span translate="no">{hours(yearSeconds)}</span>
         </div>
         <p
           className={`mt-1.5 text-xs ${yearDiff >= 0 ? 'text-emerald-500' : 'text-red-400'}`}
+          translate="no"
         >
           {yearDiff >= 0 ? '↗' : '↘'}{' '}
           {goal.unit === 'time'
-            ? formatHours(Math.abs(yearDiff))
-            : `${formatDistance(Math.abs(yearDiff))} km`}{' '}
+            ? hours(Math.abs(yearDiff))
+            : formatDistanceWithUnit(Math.abs(yearDiff), locale)}{' '}
           {t('vsLastYear')}
         </p>
       </div>
@@ -409,16 +408,13 @@ export const StatsCards = memo(function StatsCards({
           </svg>
           {t('monthlyGoal')}
         </p>
-        <p className="font-mono text-3xl font-bold whitespace-nowrap">
+        <p
+          className="font-mono text-3xl font-bold whitespace-nowrap"
+          translate="no"
+        >
           {goal.unit === 'time'
-            ? formatHours(monthSeconds)
-            : formatDistance(monthDistance)}
-          <span className="ml-1 text-base font-normal text-[var(--color-muted)]">
-            /{' '}
-            {goal.unit === 'time'
-              ? `${Math.round(monthGoalMins / 60)}h`
-              : `${goal.monthly} km`}
-          </span>
+            ? hours(monthSeconds)
+            : formatGoalValue(monthDistance, goal.monthly, locale)}
         </p>
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--color-border)]">
           <div
@@ -445,15 +441,16 @@ export const StatsCards = memo(function StatsCards({
             </svg>
             {monthCount} {unit}
           </span>
-          <span>{formatHours(monthSeconds)}</span>
+          <span translate="no">{hours(monthSeconds)}</span>
         </div>
         <p
           className={`mt-1.5 text-xs ${monthDiff >= 0 ? 'text-emerald-500' : 'text-red-400'}`}
+          translate="no"
         >
           {monthDiff >= 0 ? '↗' : '↘'}{' '}
           {goal.unit === 'time'
-            ? formatHours(Math.abs(monthDiff))
-            : `${formatDistance(Math.abs(monthDiff))} km`}{' '}
+            ? hours(Math.abs(monthDiff))
+            : formatDistanceWithUnit(Math.abs(monthDiff), locale)}{' '}
           {t('vsLastMonth')}
         </p>
       </div>
@@ -476,13 +473,13 @@ export const StatsCards = memo(function StatsCards({
           </svg>
           {locale === 'zh' ? '周目标' : 'WEEKLY GOAL'}
         </p>
-        <p className="font-mono text-3xl font-bold whitespace-nowrap">
+        <p
+          className="font-mono text-3xl font-bold whitespace-nowrap"
+          translate="no"
+        >
           {goal.unit === 'time'
-            ? formatHours(weekSeconds)
-            : formatDistance(weekDistance)}
-          <span className="ml-1 text-base font-normal text-[var(--color-muted)]">
-            / {goal.unit === 'time' ? `${weekGoalMins}m` : `${goal.weekly} km`}
-          </span>
+            ? hours(weekSeconds)
+            : formatGoalValue(weekDistance, goal.weekly, locale)}
         </p>
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[var(--color-border)]">
           <div
@@ -509,15 +506,16 @@ export const StatsCards = memo(function StatsCards({
             </svg>
             {weekCount} {unit}
           </span>
-          <span>{formatHours(weekSeconds)}</span>
+          <span translate="no">{hours(weekSeconds)}</span>
         </div>
         <p
           className={`mt-1.5 text-xs ${weekDiff >= 0 ? 'text-emerald-500' : 'text-red-400'}`}
+          translate="no"
         >
           {weekDiff >= 0 ? '↗' : '↘'}{' '}
           {goal.unit === 'time'
-            ? formatHours(Math.abs(weekDiff))
-            : `${formatDistance(Math.abs(weekDiff))} km`}{' '}
+            ? hours(Math.abs(weekDiff))
+            : formatDistanceWithUnit(Math.abs(weekDiff), locale)}{' '}
           {locale === 'zh' ? 'vs 上周同期' : 'vs last week'}
         </p>
       </div>
