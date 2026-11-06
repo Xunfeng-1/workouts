@@ -1,8 +1,8 @@
 # This site syncs Garmin Connect International (garmin.com), not garmin.cn.
 # Do not put a password in this file.
-# Generate a secret locally, then store it as the GitHub Actions secret
-# GARMIN_SECRET_STRING:
+# Generate a garminconnect secret locally (garth secrets are invalid):
 #   python run_page/get_garmin_secret.py your-email@example.com
+# Store the printed line as the GitHub Actions secret GARMIN_SECRET_STRING.
 sync:
   garmin:
     authentication_domain: Global

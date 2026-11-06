@@ -23,6 +23,9 @@ env:
   ATHLETE: Xunfeng
   TITLE: Xunfeng 的运动
   MIN_GRID_DISTANCE: 10
+  # Optional. Set to true if GitHub Actions gets HTTP 429 from Garmin/Cloudflare.
+  # Default false. See README. Same idea as running_page PR #1110.
+  USE_CLOUDFLARE_WARP: false
 
 jobs:
   sync:
@@ -48,6 +51,25 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Install Cloudflare WARP
+        if: env.USE_CLOUDFLARE_WARP == 'true'
+        run: |
+          curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
+          sudo apt-get update && sudo apt-get install -y cloudflare-warp
+
+      - name: Connect Cloudflare WARP
+        if: env.USE_CLOUDFLARE_WARP == 'true'
+        run: |
+          warp-cli --accept-tos registration new
+          warp-cli --accept-tos mode warp
+          warp-cli --accept-tos connect
+          sleep 3
+          echo "WARP status:"
+          warp-cli --accept-tos status
+          echo "IP info:"
+          curl -s https://cloudflare.com/cdn-cgi/trace | grep -E "ip|warp"
+
       - name: Run sync Garmin script
         if: env.RUN_TYPE == 'garmin'
         env:
@@ -55,10 +77,16 @@ jobs:
         run: |
           if [ -z "$GARMIN_SECRET_STRING" ]; then
             echo "Missing repository secret GARMIN_SECRET_STRING."
-            echo "Generate it with: python run_page/get_garmin_secret.py <email>"
+            echo "Generate a new garminconnect secret with: python run_page/get_garmin_secret.py <email>"
+            echo "Old garth secrets are invalid and must be replaced."
             exit 1
           fi
           python run_page/garmin_sync.py "$GARMIN_SECRET_STRING"
+
+      - name: Disconnect Cloudflare WARP
+        if: always() && env.USE_CLOUDFLARE_WARP == 'true'
+        run: |
+          warp-cli --accept-tos disconnect || true
 
       - name: Make summary SVGs
         if: env.RUN_TYPE == 'garmin'

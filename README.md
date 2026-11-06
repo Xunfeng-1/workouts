@@ -44,25 +44,29 @@ https://xunfeng-1.github.io/workouts/
 
 #### `GARMIN_SECRET_STRING`（佳明国际区登录态，不是密码）
 
-这是 running_page 的 `get_garmin_secret.py` 生成的一串登录态。Actions 里只保存这串 secret，不保存佳明密码。
+登录已经从废弃的 `garth` 换成 `garminconnect`（>=0.3.20，用 curl_cffi 做 TLS 伪装）。佳明 / Cloudflare 从 2026-03 起会直接对 `https://sso.garmin.com/mobile/api/login` 返回 HTTP 429，旧的 garth 脚本一运行就失败。
 
-在你自己的电脑上执行（需要 **Python 3.12 或更高**）。不要加 `--is-cn`，那个参数会连到 garmin.cn。
+**以前用 garth 生成的 `GARMIN_SECRET_STRING` 已经失效。** 必须用下面的命令重新生成，并在 GitHub 里覆盖原来的 Secret。
+
+在你自己的电脑上执行。Python **3.12、3.13、3.14、3.15** 都可以（macOS 上用系统的 `python3` 即可）。不要加 `--is-cn`，那个参数会连到 garmin.cn。
 
 ```bash
 git clone https://github.com/Xunfeng-1/workouts.git
 cd workouts
 python3 -m venv .venv
 source .venv/bin/activate
+python -m pip install -U pip
 pip install -r requirements.txt
+python run_page/get_garmin_secret.py --help
 python run_page/get_garmin_secret.py 你的佳明邮箱
 ```
 
 然后：
 
 1. 提示 `Garmin password (hidden, not saved):` 时输入佳明密码。密码不会显示，也不会进 shell 历史。请不要把密码写在命令后面。
-2. 如果账号开了两步验证，终端会再问验证码，按提示输入。
-3. 终端最后把 secret 打到标准输出（通常是一行 JSON）。`Copy everything below...` 这句在标准错误里，不要复制它。
-4. 新建 Secret，**Name** 填 `GARMIN_SECRET_STRING`，**Value** 粘贴整段 secret。
+2. 如果账号开了两步验证，终端会问 `MFA code:`，输入验证码。没开两步验证就不会问。
+3. 终端最后把 secret 打到标准输出（一行 JSON，里面是 `di_token` / `di_refresh_token`）。`Copy everything below...` 和 “Tokens created with garth...” 这两句在标准错误里，不要复制。
+4. 新建或更新 Secret，**Name** 填 `GARMIN_SECRET_STRING`，**Value** 粘贴整段新 secret，替换掉旧的 garth 字符串。
 5. 生成后可以 `deactivate`，并考虑清掉终端滚动缓冲。不要把 secret 发给别人，也不要提交到仓库。
 
 不推荐、但脚本仍兼容的写法（密码会出现在 shell 历史和进程列表里）：
@@ -78,6 +82,8 @@ python run_page/garmin_sync.py "$GARMIN_SECRET_STRING"
 ```
 
 这会请求 **garmin.com / connectapi.garmin.com**，不会加 `--is-cn`。默认同步跑步、骑行等全部活动。若只想要跑步，可在 `.github/workflows/run_data_sync.yml` 的那条命令末尾加上 `--only-run`。
+
+如果 GitHub Actions 里同步仍然出现 **HTTP 429**（Cloudflare 按 Actions 的 IP 拦截），把 `.github/workflows/run_data_sync.yml` 里的 `USE_CLOUDFLARE_WARP` 从 `false` 改成 `true` 再提交。默认是关的。打开后，同步前会安装并连接 Cloudflare WARP，结束时断开。本机生成 secret 不需要开这个开关。
 
 #### `MAPBOX_TOKEN`（构建时注入为 `VITE_MAPBOX_TOKEN`）
 
@@ -119,5 +125,5 @@ pnpm preview
 
 | 文件 | 作用 |
 | --- | --- |
-| `.github/workflows/run_data_sync.yml` | 每天和手动触发。`RUN_TYPE=garmin`，用 `GARMIN_SECRET_STRING` 跑 `run_page/garmin_sync.py`，再把数据提交回仓库并部署。 |
+| `.github/workflows/run_data_sync.yml` | 每天和手动触发。`RUN_TYPE=garmin`，用新的 garminconnect secret 跑 `run_page/garmin_sync.py`，再把数据提交回仓库并部署。可选 `USE_CLOUDFLARE_WARP=true` 应对 Actions 上的 429。 |
 | `.github/workflows/gh-pages.yml` | `pnpm build`（`PATH_PREFIX=/workouts`），`actions/upload-pages-artifact`，然后 `actions/deploy-pages`。 |
