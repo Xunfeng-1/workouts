@@ -65,8 +65,8 @@ python run_page/get_garmin_secret.py 你的佳明邮箱
 
 1. 提示 `Garmin password (hidden, not saved):` 时输入佳明密码。密码不会显示，也不会进 shell 历史。请不要把密码写在命令后面。
 2. 如果账号开了两步验证，终端会问 `MFA code:`，输入验证码。没开两步验证就不会问。
-3. 终端最后把 secret 打到标准输出（一行 JSON，里面是 `di_token` / `di_refresh_token`）。`Copy everything below...` 和 “Tokens created with garth...” 这两句在标准错误里，不要复制。
-4. 新建或更新 Secret，**Name** 填 `GARMIN_SECRET_STRING`，**Value** 粘贴整段新 secret，替换掉旧的 garth 字符串。
+3. 终端最后把 secret 打到标准输出（一行 JSON）。里面必须同时有 `di_token`（访问令牌，大约几天过期）、`di_refresh_token`（刷新令牌，用来续期）和 `di_client_id`。缺任何一项脚本都会直接失败。标准错误里的说明不要复制。
+4. 新建或更新 Secret，**Name** 填 `GARMIN_SECRET_STRING`，**Value** 粘贴整段新 secret。访问令牌过期后，同步会用刷新令牌换一套新令牌，并用这个 Secret 加密后写回 `run_page/.garmin_token.enc`。那个文件不是明文，没有这个 Secret 解不开。不需要再添加别的密钥；`GITHUB_TOKEN` 不能改 Actions Secret。
 5. 生成后可以 `deactivate`，并考虑清掉终端滚动缓冲。不要把 secret 发给别人，也不要提交到仓库。
 
 不推荐、但脚本仍兼容的写法（密码会出现在 shell 历史和进程列表里）：
@@ -82,6 +82,10 @@ python run_page/garmin_sync.py "$GARMIN_SECRET_STRING"
 ```
 
 这会请求 **garmin.com / connectapi.garmin.com**，不会加 `--is-cn`。默认同步跑步、骑行等全部活动。若只想要跑步，可在 `.github/workflows/run_data_sync.yml` 的那条命令末尾加上 `--only-run`。
+
+`di_token` 大约几天就会过期。同步发现过期或 HTTP 401 时，会用 `di_refresh_token` 向佳明换一套新令牌。佳明有时会同时作废旧的刷新令牌，所以新的一整包会用 `GARMIN_SECRET_STRING` 做 AES-256-GCM 加密，写到 `run_page/.garmin_token.enc` 再提交。仓库里只有密文。不需要额外的 GitHub Secret。
+
+如果日志里出现「佳明登录已失效（HTTP 401）」，按上面的命令重新生成一次 `GARMIN_SECRET_STRING` 并覆盖原密钥，再手动跑 Sync Garmin。只要这一次成功，之后每天的续期会写回加密文件，不用再改密钥。
 
 同步结束后，如果某条活动没有 `location_country` 但有轨迹，会用轨迹起点向 Nominatim 反查国家（最多每秒 1 次，结果缓存在 `run_page/geocode_cache.json`）。查不到或服务失败时跳过，不会让当天的同步失败。
 

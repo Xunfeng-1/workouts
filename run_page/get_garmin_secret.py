@@ -13,9 +13,12 @@ GARMIN_SECRET_STRING. Do not pass --is-cn; that selects garmin.cn.
 
 import argparse
 import getpass
+import json
 import sys
 
 import garminconnect
+
+from garmin_token_store import token_has_refresh_material
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -71,12 +74,27 @@ if __name__ == "__main__":
     )
     garmin.login()
     secret_string = garmin.client.dumps()
+    if not token_has_refresh_material(secret_string):
+        print(
+            "登录结果里没有长期刷新材料（di_token、di_refresh_token、di_client_id 必须都有）。"
+            "不能把这段输出当作 GARMIN_SECRET_STRING。",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    # Confirm the three fields without printing the token values.
+    fields = sorted(json.loads(secret_string))
     print(
         "Copy everything below into the GitHub Actions secret GARMIN_SECRET_STRING.",
         file=sys.stderr,
     )
     print(
-        "Replace any older secret. Tokens created with garth no longer work.",
+        "这一行是完整登录态，字段包括 "
+        + ", ".join(fields)
+        + "。其中 di_refresh_token 用来在访问令牌过期后续期，必须整段保存。",
+        file=sys.stderr,
+    )
+    print(
+        "旧的 garth 密钥、以及只含访问令牌的片段都不能用。",
         file=sys.stderr,
     )
     print(secret_string)
