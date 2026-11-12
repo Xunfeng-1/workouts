@@ -23,6 +23,11 @@ from config import FOLDER_DICT, JSON_FILE, SQL_FILE
 from garmin_device_adaptor import process_garmin_data
 from lxml import etree
 
+from garmin_token_store import (
+    AUTH_EXPIRED_ZH,
+    resolve_token_bundle,
+    save_token_bundle,
+)
 from utils import make_activities_file
 
 # logging.basicConfig(level=logging.DEBUG)
@@ -65,15 +70,19 @@ class Garmin:
         # and the TLS fingerprint connectapi expects. garth is deprecated and
         # blocked by Cloudflare. This site uses garmin.com unless --is-cn is set.
         self.gc = garminconnect.Garmin(is_cn=is_cn)
+        # Encryption key stays the GitHub secret. The loaded bundle may be a
+        # newer refresh saved from the last run.
+        self._secret_key = secret_string
+        stored = resolve_token_bundle(secret_string)
         try:
-            self.gc.client.loads(secret_string)
+            self.gc.client.loads(stored)
         except garminconnect.GarminConnectConnectionError as err:
             raise GarminConnectAuthenticationError(
                 "Garmin secret string is invalid or from the old garth format; "
                 "re-run run_page/get_garmin_secret.py to create a new one"
             ) from err
-        # One cheap call refreshes an expired token and proves the login works.
-        self.gc.client.connectapi("userprofile-service/socialProfile")
+        self._refresh_and_check()
+        save_token_bundle(self.gc.client.dumps(), self._secret_key)
 
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36",
@@ -84,6 +93,36 @@ class Garmin:
         self.is_only_running = is_only_running
         self.upload_url = self.URL_DICT.get("UPLOAD_URL")
         self.activity_url = self.URL_DICT.get("ACTIVITY_URL")
+
+    def _refresh_and_check(self):
+        """Refresh an expired access token, then prove the session works.
+
+        garminconnect only refreshes when the JWT is within 15 minutes of
+        expiry, and a failed refresh is swallowed. Persisting the new bundle
+        happens here so a rotated refresh token is not thrown away.
+        """
+        client = self.gc.client
+        if client.di_refresh_token and client._token_expires_soon():
+            try:
+                client._refresh_di_token()
+            except Exception as err:
+                print(f"刷新佳明访问令牌失败：{err}", file=sys.stderr)
+            else:
+                save_token_bundle(client.dumps(), self._secret_key)
+        try:
+            client.connectapi("userprofile-service/socialProfile")
+            return
+        except garminconnect.GarminConnectConnectionError as err:
+            if "401" not in str(err):
+                raise
+        print("佳明访问令牌被拒绝（HTTP 401），正在用刷新令牌换新令牌。", file=sys.stderr)
+        try:
+            client._refresh_di_token()
+            save_token_bundle(client.dumps(), self._secret_key)
+            client.connectapi("userprofile-service/socialProfile")
+        except Exception as err:
+            print(AUTH_EXPIRED_ZH, file=sys.stderr)
+            raise GarminConnectAuthenticationError(AUTH_EXPIRED_ZH) from err
 
     def _api_get(self, url):
         parts = urlsplit(url)
@@ -403,6 +442,7 @@ async def download_new_activities(
     )
     print(f"Download finished. Elapsed {time.time()-start_time} seconds")
 
+    save_token_bundle(client.gc.client.dumps(), client._secret_key)
     await client.req.aclose()
     return to_generate_garmin_ids, to_generate_garmin_id2title
 

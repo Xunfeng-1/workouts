@@ -28,3 +28,7 @@ route.png
 route.svg
 
 .env
+
+# Plaintext Garmin tokens. The encrypted cache .garmin_token.enc is committed.
+run_page/.garmin_token.json
+run_page/.garmin_token.json.tmp

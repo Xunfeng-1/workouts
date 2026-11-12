@@ -81,7 +81,23 @@ jobs:
             echo "Old garth secrets are invalid and must be replaced."
             exit 1
           fi
+          set +e
           python run_page/garmin_sync.py "$GARMIN_SECRET_STRING"
+          status=$?
+          set -e
+          # Refresh can rotate di_refresh_token before the download finishes.
+          # Commit the ciphertext even when the sync fails, or the next run
+          # keeps the already-invalid refresh token. This file is not plaintext.
+          if [ -f run_page/.garmin_token.enc ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add run_page/.garmin_token.enc
+            if ! git diff --cached --quiet; then
+              git commit -m "chore: update encrypted Garmin token"
+              git push origin HEAD:main
+            fi
+          fi
+          exit "$status"
 
       - name: Disconnect Cloudflare WARP
         if: always() && env.USE_CLOUDFLARE_WARP == 'true'
